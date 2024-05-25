@@ -1,6 +1,9 @@
 import streamlit as st
 from model import *
 import os
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
