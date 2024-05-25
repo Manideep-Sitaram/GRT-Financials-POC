@@ -1,6 +1,11 @@
 import streamlit as st
 from model import *
+import os
 
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
+os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 st.title("GRT Financials Application")
 
 # Sidebar menu
