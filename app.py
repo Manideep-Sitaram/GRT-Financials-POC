@@ -1,14 +1,18 @@
 import streamlit as st
 from model import *
 import os
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+from dotenv import load_dotenv
 
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
-os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
+# os.environ["LANGCHAIN_TRACING_V2"] = "true"
+# os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+# os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
+# os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
+
+load_dotenv()
 st.title("GRT Financials Application")
 
 # Sidebar menu
@@ -27,7 +31,6 @@ if submit_process:
         with st.spinner("Processing..."):
             # Perform any processing needed here
             initial_question_and_answers = load_documents_initially(pdf_docs)
-            st.write("Submit & Process is clicked")
             
             for qa_pair in initial_question_and_answers:
                 question = qa_pair["question"]

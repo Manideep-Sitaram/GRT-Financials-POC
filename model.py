@@ -2,6 +2,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores.chroma import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -35,7 +36,8 @@ def get_text_chunks(text_documents):
     return text_chunks
 
 def load_text_chunks_in_vector_databse(text_chunks):
-    Chroma.from_documents(text_chunks,OpenAIEmbeddings(),persist_directory=persist_directory)
+    db=FAISS.from_documents(text_chunks,OpenAIEmbeddings())
+    db.save_local(persist_directory)
 
 
 def user_input(user_query):
@@ -51,7 +53,7 @@ def user_input(user_query):
         Question: {input}
         """)
     document_chain=create_stuff_documents_chain(llm,prompt)
-    db=Chroma(persist_directory='db',embedding_function=OpenAIEmbeddings())
+    db=FAISS.load_local("db",OpenAIEmbeddings(),allow_dangerous_deserialization=True)
     retriever=db.as_retriever()
     retrieval_chain=create_retrieval_chain(retriever,document_chain)
     response=retrieval_chain.invoke({"input": user_query})
@@ -72,9 +74,55 @@ def load_documents_initially(pdf_doc):
     text_chunks = get_text_chunks(text_documents)
     load_text_chunks_in_vector_databse(text_chunks)
     
-    default_prompts = [
-        "Which Company does this Document belongs to"
-    ]
+    default_prompts =  [
+    "What was the revenue for the last 2 years? Provide the answer in tabular format.",
+    "What was the revenue for the last 2 quarters? Provide the answer in tabular format.",
+    "What was the revenue by business lines? Provide the answer in tabular format.",
+    "What was the revenue by geographic location? Provide the answer in tabular format.",
+    "What is the summary of changes in revenue? Provide the answer in tabular format.",
+    "What are the reasons for the change in revenue? Provide the answer in commentary format.",
+    "What was the net income for the last 2 years? Provide the answer in tabular format.",
+    "What was the net income for the last 2 quarters? Provide the answer in tabular format.",
+    "What was the net income by business lines? Provide the answer in tabular format.",
+    "What was the net income by geographic location? Provide the answer in tabular format.",
+    "What is the summary of changes in net income? Provide the answer in tabular format.",
+    "What are the reasons for the change in net income? Provide the answer in commentary format.",
+    "What was the gross profit for the last 2 years? Provide the answer in tabular format.",
+    "What was the gross profit for the last 2 quarters? Provide the answer in tabular format.",
+    "What are the reasons for the change in net income? Provide the answer in commentary format.",
+    "What was the operating profit for the last 2 years? Provide the answer in tabular format.",
+    "What was the operating profit for the last 2 quarters? Provide the answer in tabular format.",
+    "What are the reasons for the change in net income? Provide the answer in commentary format.",
+    "What was the cash flow from operations (CFFO) for the last 2 years? Provide the answer in tabular format.",
+    "What was the cash flow from operations (CFFO) for the last 2 quarters? Provide the answer in tabular format.",
+    "What is the summary of changes in CFFO? Provide the answer in tabular format.",
+    "What are the reasons for the change in CFFO? Provide the answer in commentary format.",
+    "What was the capital expenditure (CAPEX) for the last 2 years? Provide the answer in tabular format.",
+    "What was the capital expenditure (CAPEX) for the last 2 quarters? Provide the answer in tabular format.",
+    "What are the reasons for the change in CAPEX? Provide the answer in commentary format.",
+    "What was the cash flow from investing activities (CFFI) for the last 2 years/quarters? Provide the answer in tabular format.",
+    "What are the reasons for the change in CFFI? Provide the answer in commentary format.",
+    "What was the cash flow from financing activities (CFFF) for the last 2 years/quarters? Provide the answer in tabular format.",
+    "What are the reasons for the change in CFFF? Provide the answer in commentary format.",
+    "What are the reasons for the change in working capital? Provide the answer in commentary format.",
+    "What was the EBITDA for the last 2 years? Provide the answer in tabular format.",
+    "What was the EBITDA for the last 2 quarters? Provide the answer in tabular format.",
+    "What is the summary of changes in EBITDA? Provide the answer in tabular format.",
+    "What are the reasons for the change in EBITDA? Provide the answer in commentary format.",
+    "What is the total liquidity? Provide the answer in tabular format.",
+    "What was the liquidity for the previous and current year/quarter? Provide the answer in tabular format.",
+    "What are the reasons for the change in liquidity? Provide the answer in commentary format.",
+    "What is the summary of recent events? Provide the answer in commentary format.",
+    "What was the debt for the last 2 years? Provide the answer in tabular format.",
+    "What was the debt for the last quarter with the last financial report? Provide the answer in tabular format.",
+    "What is the summary of changes in debt? Provide the answer in tabular format.",
+    "What are the reasons for the change in debt? Provide the answer in commentary format.",
+    "What were the changes in equity for the last 2 years? Provide the answer in tabular format.",
+    "What were the changes in equity for the last quarter with the last financial report? Provide the answer in tabular format.",
+    "What are the reasons for the changes in equity/net worth? Provide the answer in commentary format.",
+    "What was the financial performance for the last quarter/financial year? Provide the answer in commentary format."
+]
+
     
     initial_question_and_answers = []
     for prompt in default_prompts:

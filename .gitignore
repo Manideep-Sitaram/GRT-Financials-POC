@@ -1,2 +1,6 @@
 .env
 .grtvenv
+__pycache__
+db
+test.py
+*.pdf
