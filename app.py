@@ -20,43 +20,78 @@ os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 # Streamlit application title
 st.title("GRT Financials Application")
 
-# Sidebar menu for file upload and processing
+if "file_uploader_key" not in st.session_state:
+    st.session_state["file_uploader_key"] = 0
+    
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+    
+    
+def reset_state():
+    st.session_state.messages = []
+    st.session_state["file_uploader_key"] += 1
+    st.experimental_rerun()
+    # st.rerun()
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"], unsafe_allow_html=True)
+
+
+# Sidebar menu
 with st.sidebar:
     st.title("Menu")
-    pdf_docs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process", type="pdf")
+    pdf_docs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process", type="pdf", key=st.session_state["file_uploader_key"])
     submit_process = st.button("Submit & Process")
+    
+    reset_button = st.button("Reset All")
+    if reset_button:
+        reset_state()
 
-# Initialize chat history
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
 
-# Text input for user queries
-user_query = st.text_input("Please Enter Your Query")
+if user_query := st.chat_input("Please Enter Your Query"):
+    with st.chat_message("user"):
+        st.markdown(user_query)
+    with st.chat_message("assistant"):
+        st.markdown(user_input(user_query).replace("$","\$"), unsafe_allow_html=True)
 
-# Function to process user query and update chat history
-def process_user_query(query):
-    response = user_input(query).replace("$", "\$")
-    st.session_state.chat_history.append({"user": query, "bot": response})
-
-# Process user query if entered
-if user_query:
-    process_user_query(user_query)
-
-# Process uploaded PDF document
+# Function to get the chat conversation as Markdown
+def get_chat_conversation_markdown():
+    conversation_md = ""
+    for message in st.session_state.messages:
+        role = message["role"]
+        content = message["content"]
+        conversation_md += f"**{role.capitalize()}:** {content}\n\n"
+    return conversation_md
+     
 if submit_process:
     if pdf_docs:
         with st.spinner("Processing..."):
-            reset_vector_database()
             initial_question_and_answers = load_documents_initially(pdf_docs)
+            st.write("Submit & Process is clicked")
+
             for qa_pair in initial_question_and_answers:
                 question = qa_pair["question"]
-                answer = qa_pair["answer"].replace("$", "\$")
-                st.session_state.chat_history.append({"user": question, "bot": answer})
+                answer = qa_pair["answer"].replace("$","\$")
+                st.session_state.messages.append({"role": "user", "content": question})
+                st.session_state.messages.append({"role": "assistant", "content": answer})
+                with st.chat_message("user"):
+                    st.markdown(question)
+                with st.chat_message("assistant"):
+                    st.markdown(answer, unsafe_allow_html=True)
+                st.write("---")  # This will add a horizontal line for better readability
+
     else:
         st.warning("Please Upload The PDF")
 
-# Display chat history
-for chat in st.session_state.chat_history:
-    st.markdown(f"**User:** {chat['user']}")
-    st.markdown(f"**Bot:** {chat['bot']}")
-    st.write("---")  # Horizontal line for separation
+# Download and Reset buttons
+col1, col2 = st.columns(2)
+with col1:
+    chat_md = get_chat_conversation_markdown()
+    download_str = f"GRT_Financials_Chat_{st.session_state.get('session_id', 'default')}.md"
+    st.download_button(
+        label="Download Chat Conversation",
+        data=chat_md,
+        file_name=download_str,
+        mime="text/markdown",
+    )
