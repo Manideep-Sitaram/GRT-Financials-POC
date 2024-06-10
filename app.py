@@ -51,9 +51,12 @@ with st.sidebar:
 
 if user_query := st.chat_input("Please Enter Your Query"):
     with st.chat_message("user"):
+        st.session_state.messages.append({"role": "user", "content": user_query})
         st.markdown(user_query)
     with st.chat_message("assistant"):
-        st.markdown(user_input(user_query).replace("$","\$"), unsafe_allow_html=True)
+        response = user_input(user_query).replace("$","\$")
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.markdown(response, unsafe_allow_html=True)
 
 # Function to get the chat conversation as Markdown
 def get_chat_conversation_markdown():
