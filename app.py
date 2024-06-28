@@ -97,7 +97,7 @@ if submit_process:
                 if category != prev_category:
                     st.write("---")  # This will add a horizontal line for better readability
                     st.session_state.messages.append({"role": "user", "content": category})
-                    st.markdsown(f"**{category}**")
+                    st.markdown(f"**{category}**")
 
                 st.session_state.messages.append({"role": "assistant", "content": answer})
 
