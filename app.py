@@ -73,22 +73,32 @@ if submit_process:
             initial_question_and_answers = load_documents_initially(pdf_docs)
             st.write("Submit & Process is clicked")
 
+            prev_category = ''
+
             for qa_pair in initial_question_and_answers:
                 question = qa_pair["question"]
+                category = qa_pair["category"]
                 answer = qa_pair["answer"].replace("$","\$")
-                st.session_state.messages.append({"role": "user", "content": question})
+
+                if category != prev_category:
+                    st.write("---")  # This will add a horizontal line for better readability
+                    st.session_state.messages.append({"role": "user", "content": question})
+
                 st.session_state.messages.append({"role": "assistant", "content": answer})
+
                 with st.chat_message("user"):
                     st.markdown(question)
                 with st.chat_message("assistant"):
                     st.markdown(answer, unsafe_allow_html=True)
-                st.write("---")  # This will add a horizontal line for better readability
+
+                prev_category = category
 
     else:
         st.warning("Please Upload The PDF")
 
 # Download and Reset buttons
 col1, col2 = st.columns(2)
+
 with col1:
     chat_md = get_chat_conversation_markdown()
     download_str = f"GRT_Financials_Chat_{st.session_state.get('session_id', 'default')}.md"
