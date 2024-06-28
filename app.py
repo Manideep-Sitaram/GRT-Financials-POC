@@ -2,6 +2,18 @@ import streamlit as st
 from model import load_documents_initially, user_input, reset_vector_database
 import os
 from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(
+    filename='app.log',  # Log file name
+    level=logging.INFO,  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format='%(asctime)s %(levelname)s %(message)s',  # Log format
+    datefmt='%Y-%m-%d %H:%M:%S'  # Date format
+)
+
+# Create a logger
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -73,22 +85,34 @@ if submit_process:
             initial_question_and_answers = load_documents_initially(pdf_docs)
             st.write("Submit & Process is clicked")
 
+            prev_category = ''
+
             for qa_pair in initial_question_and_answers:
                 question = qa_pair["question"]
+                category = qa_pair["category"]
                 answer = qa_pair["answer"].replace("$","\$")
-                st.session_state.messages.append({"role": "user", "content": question})
+
+                logging.info(f"Question: {question}, Category: {category}")
+
+                if category != prev_category:
+                    st.write("---")  # This will add a horizontal line for better readability
+                    st.session_state.messages.append({"role": "user", "content": category})
+                    with st.chat_message("user"):
+                        st.markdown(category)
+
                 st.session_state.messages.append({"role": "assistant", "content": answer})
-                with st.chat_message("user"):
-                    st.markdown(question)
+
                 with st.chat_message("assistant"):
                     st.markdown(answer, unsafe_allow_html=True)
-                st.write("---")  # This will add a horizontal line for better readability
+
+                prev_category = category
 
     else:
         st.warning("Please Upload The PDF")
 
 # Download and Reset buttons
 col1, col2 = st.columns(2)
+
 with col1:
     chat_md = get_chat_conversation_markdown()
     download_str = f"GRT_Financials_Chat_{st.session_state.get('session_id', 'default')}.md"
