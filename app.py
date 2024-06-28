@@ -2,6 +2,18 @@ import streamlit as st
 from model import load_documents_initially, user_input, reset_vector_database
 import os
 from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(
+    filename='app.log',  # Log file name
+    level=logging.INFO,  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format='%(asctime)s %(levelname)s %(message)s',  # Log format
+    datefmt='%Y-%m-%d %H:%M:%S'  # Date format
+)
+
+# Create a logger
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -80,14 +92,16 @@ if submit_process:
                 category = qa_pair["category"]
                 answer = qa_pair["answer"].replace("$","\$")
 
+                logging.info(f"Question: {question}, Category: {category}")
+
                 if category != prev_category:
                     st.write("---")  # This will add a horizontal line for better readability
                     st.session_state.messages.append({"role": "user", "content": category})
+                    with st.chat_message("user"):
+                        st.markdown(category)
 
                 st.session_state.messages.append({"role": "assistant", "content": answer})
 
-                with st.chat_message("user"):
-                    st.markdown(question)
                 with st.chat_message("assistant"):
                     st.markdown(answer, unsafe_allow_html=True)
 
