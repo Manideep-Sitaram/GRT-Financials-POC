@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 import logging
 from pptx import Presentation
-from pptx.util import Inches
 
 # Configure logging
 logging.basicConfig(
