@@ -3,6 +3,8 @@ from model import load_documents_initially, user_input, reset_vector_database
 import os
 from dotenv import load_dotenv
 import logging
+from pptx import Presentation
+from pptx.util import Inches
 
 # Configure logging
 logging.basicConfig(
@@ -78,6 +80,22 @@ def get_chat_conversation_markdown():
         content = message["content"]
         conversation_md += f"**{role.capitalize()}:** {content}\n\n"
     return conversation_md
+
+# Function to get the chat conversation as a PPT file
+def get_chat_conversation_ppt():
+    prs = Presentation()
+    for message in st.session_state.messages:
+        if message["role"] == "assistant":
+            content = message["content"]
+            category = prev_category if prev_category else "Assistant"
+            slide = prs.slides.add_slide(prs.slide_layouts[1])
+            title = slide.shapes.title
+            body = slide.shapes.placeholders[1]
+            title.text = category
+            body.text = content
+        elif message["role"] == "user":
+           prev_category = message["content"]
+    return prs
      
 if submit_process:
     if pdf_docs:
@@ -113,11 +131,14 @@ if submit_process:
 col1, col2 = st.columns(2)
 
 with col1:
-    chat_md = get_chat_conversation_markdown()
-    download_str = f"GRT_Financials_Chat_{st.session_state.get('session_id', 'default')}.md"
+    prs = get_chat_conversation_ppt()
+    pptx_bytes = io.BytesIO()
+    prs.save(pptx_bytes)
+    pptx_bytes.seek(0)
+    download_str = f"GRT_Financials_Chat_{st.session_state.get('session_id', 'default')}.pptx"
     st.download_button(
         label="Download Chat Conversation",
-        data=chat_md,
+        data=pptx_bytes,
         file_name=download_str,
-        mime="text/markdown",
+        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
     )
