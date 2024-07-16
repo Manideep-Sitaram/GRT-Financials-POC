@@ -12,6 +12,7 @@ import shutil
 from dotenv import load_dotenv
 import os
 import logging
+from pptx import Presentation
 
 # Configure logging
 logging.basicConfig(
@@ -69,10 +70,19 @@ def user_input(user_query):
         """)
     document_chain=create_stuff_documents_chain(llm,prompt)
     db=FAISS.load_local("db",OpenAIEmbeddings(),allow_dangerous_deserialization=True)
-    retriever=db.as_retriever()
-    retrieval_chain=create_retrieval_chain(retriever,document_chain)
-    response=retrieval_chain.invoke({"input": user_query})
-    return response["answer"]
+    relevant_docs_with_similarity_score = db.similarity_search_with_relevance_scores(user_query, k=4)
+    relevant_docs = [ doc[0] for doc in relevant_docs_with_similarity_score]
+    response = document_chain.invoke({
+      "input": user_query,
+      "context": relevant_docs
+  })
+    page_numbers = [doc[0].metadata["page"] for doc in relevant_docs_with_similarity_score if doc[1] > 0.70]
+    page_numbers = list(set(page_numbers))
+    response_object = {
+        "response":response,
+        "pageNumbers":page_numbers
+        }
+    return response_object
 
 
 def reset_vector_database():
@@ -113,11 +123,12 @@ def load_documents_initially(pdf_doc):
     for prompt in default_prompts:
         question_and_answer = {}
         question_and_answer["category"], question_and_answer["question"] = prompt
-        question_and_answer["answer"] = user_input(prompt[1])
+        response_object = user_input(prompt[1])
+        question_and_answer["answer"] = response_object["response"]
+        question_and_answer["pageNumbers"] = response_object["pageNumbers"]
         
         initial_question_and_answers.append(question_and_answer)
 
     logging.info(f"Initial question and answers: {initial_question_and_answers}")
     
     return initial_question_and_answers
-    

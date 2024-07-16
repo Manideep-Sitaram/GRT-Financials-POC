@@ -1,8 +1,11 @@
+import io
 import streamlit as st
 from model import load_documents_initially, user_input, reset_vector_database
 import os
 from dotenv import load_dotenv
 import logging
+from pptx import Presentation
+from pptx.util import Pt
 
 # Configure logging
 logging.basicConfig(
@@ -30,7 +33,7 @@ os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
 os.environ["LANGCHAIN_PROJECT"] = st.secrets["LANGCHAIN_PROJECT"]
 
 # Streamlit application title
-st.title("GRT Financials Application")
+st.title("CMR Financials Application")
 
 if "file_uploader_key" not in st.session_state:
     st.session_state["file_uploader_key"] = 0
@@ -45,9 +48,34 @@ def reset_state():
     st.experimental_rerun()
     # st.rerun()
 
+def get_chat_conversation_ppt():
+    prs = Presentation()
+    for message in st.session_state.messages:
+        if message["role"] == "assistant":
+            content = message["content"]
+            category = prev_category if prev_category else "Assistant"
+            slide = prs.slides.add_slide(prs.slide_layouts[1])
+            title = slide.shapes.title
+            body = slide.shapes.placeholders[1]
+            title.text = category
+                        # Set the content and font size
+            text_frame = body.text_frame
+            text_frame.clear()  # Clear any existing content
+            text_frame.word_wrap = True
+            
+            p = text_frame.add_paragraph()
+            p.text = content
+            p.font.size = Pt(13)  # Set font size to 24 points
+        elif message["role"] == "user":
+           prev_category = message["content"]
+    return prs
+    
+
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"], unsafe_allow_html=True)
+        if "pageNumbers" in message:
+            st.markdown(f"Page Numbers : {message['pageNumbers']}")
 
 
 # Sidebar menu
@@ -63,12 +91,15 @@ with st.sidebar:
 
 if user_query := st.chat_input("Please Enter Your Query"):
     with st.chat_message("user"):
-        st.session_state.messages.append({"role": "user", "content": user_query})
+        st.session_state.messages.append({"role": "user", "content": user_query,"userChat":True})
         st.markdown(user_query)
     with st.chat_message("assistant"):
-        response = user_input(user_query).replace("$","\$")
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        response_object = user_input(user_query)
+        response = (response_object["response"]).replace("$","\$")
+        pageNumbers = response_object["pageNumbers"]
+        st.session_state.messages.append({"role": "assistant", "content": response,"pageNumbers":pageNumbers})
         st.markdown(response, unsafe_allow_html=True)
+        st.markdown(f"Page Numbers : {pageNumbers}")
 
 # Function to get the chat conversation as Markdown
 def get_chat_conversation_markdown():
@@ -90,6 +121,7 @@ if submit_process:
             for qa_pair in initial_question_and_answers:
                 question = qa_pair["question"]
                 category = qa_pair["category"]
+                pageNumbers = qa_pair["pageNumbers"]
                 answer = qa_pair["answer"].replace("$","\$")
 
                 logging.info(f"Question: {question}, Category: {category}")
@@ -97,12 +129,13 @@ if submit_process:
                 if category != prev_category:
                     st.write("---")  # This will add a horizontal line for better readability
                     st.session_state.messages.append({"role": "user", "content": category})
-                    st.markdown(f"**{category}**")
+                    st.subheader(f"{category}")
 
-                st.session_state.messages.append({"role": "assistant", "content": answer})
+                st.session_state.messages.append({"role": "assistant", "content": answer,"pageNumbers": pageNumbers})
 
                 with st.chat_message("assistant"):
                     st.markdown(answer, unsafe_allow_html=True)
+                    st.markdown(f"Page Numbers : {pageNumbers}")
 
                 prev_category = category
 
@@ -113,11 +146,15 @@ if submit_process:
 col1, col2 = st.columns(2)
 
 with col1:
-    chat_md = get_chat_conversation_markdown()
-    download_str = f"GRT_Financials_Chat_{st.session_state.get('session_id', 'default')}.md"
+    prs = get_chat_conversation_ppt()
+    pptx_bytes = io.BytesIO()
+    prs.save(pptx_bytes)
+    pptx_bytes.seek(0)
+    download_str = f"GRT_Financials_Chat_{st.session_state.get('session_id', 'default')}.pptx"
+    
     st.download_button(
         label="Download Chat Conversation",
-        data=chat_md,
+        data=pptx_bytes,
         file_name=download_str,
-        mime="text/markdown",
+        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
     )
