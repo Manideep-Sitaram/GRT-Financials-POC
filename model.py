@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import os
 import logging
 from pptx import Presentation
+from pypdf import PdfMerger
 
 # Configure logging
 logging.basicConfig(
@@ -69,6 +70,7 @@ def user_input(user_query):
         Question: {input}
         """)
     document_chain=create_stuff_documents_chain(llm,prompt)
+    
     db=FAISS.load_local("db",OpenAIEmbeddings(),allow_dangerous_deserialization=True)
     relevant_docs_with_similarity_score = db.similarity_search_with_relevance_scores(user_query, k=4)
     relevant_docs = [ doc[0] for doc in relevant_docs_with_similarity_score]
@@ -77,10 +79,12 @@ def user_input(user_query):
       "context": relevant_docs
   })
     page_numbers = [doc[0].metadata["page"] for doc in relevant_docs_with_similarity_score if doc[1] > 0.70]
+    page_numbers_with_source_name = [{doc[0].metadata["source"]:doc[0].metadata["page"]} for doc in relevant_docs_with_similarity_score if doc[1] > 0.70]
     page_numbers = list(set(page_numbers))
     response_object = {
         "response":response,
-        "pageNumbers":page_numbers
+        # "pageNumbers":page_numbers,
+        "pageNumbersWithSourceName": page_numbers_with_source_name,
         }
     return response_object
 
@@ -92,11 +96,16 @@ def reset_vector_database():
         
     else:
         print("The Database is already empty")
+        
+
     
-def load_documents_initially(pdf_doc):
+def load_documents_initially(pdf_docs):
     reset_vector_database()
-    text_documents = get_text_documents(pdf_doc)
-    text_chunks = get_text_chunks(text_documents)
+    print(f"The length of the PDF DOCS {len(pdf_docs)}")
+    text_chunks =[]
+    for pdf_doc in pdf_docs:  
+        text_documents = get_text_documents(pdf_doc)
+        text_chunks += get_text_chunks(text_documents)
     load_text_chunks_in_vector_databse(text_chunks)
     
     default_prompts =  [
@@ -125,7 +134,8 @@ def load_documents_initially(pdf_doc):
         question_and_answer["category"], question_and_answer["question"] = prompt
         response_object = user_input(prompt[1])
         question_and_answer["answer"] = response_object["response"]
-        question_and_answer["pageNumbers"] = response_object["pageNumbers"]
+        # question_and_answer["pageNumbers"] = response_object["pageNumbers"]
+        question_and_answer["pageNumbersWithSourceName"]=response_object["pageNumbersWithSourceName"]
         
         initial_question_and_answers.append(question_and_answer)
 

@@ -73,15 +73,19 @@ def get_chat_conversation_ppt():
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
+        print(message)
         st.markdown(message["content"], unsafe_allow_html=True)
-        if "pageNumbers" in message:
-            st.markdown(f"Page Numbers : {message['pageNumbers']}")
+        # if "pageNumbers" in message:
+        #     st.markdown(f"Page Numbers : {message['pageNumbers']}")
+        if "pageNumbersWithSourceName" in message:
+            st.markdown(f"Page Numbers with Source Name : {message['pageNumbersWithSourceName']}")
+            
 
 
 # Sidebar menu
 with st.sidebar:
     st.title("Menu")
-    pdf_docs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process", type="pdf", key=st.session_state["file_uploader_key"])
+    pdf_docs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process", type="pdf", key=st.session_state["file_uploader_key"], accept_multiple_files=True)
     submit_process = st.button("Submit & Process")
     
     reset_button = st.button("Reset All")
@@ -96,10 +100,13 @@ if user_query := st.chat_input("Please Enter Your Query"):
     with st.chat_message("assistant"):
         response_object = user_input(user_query)
         response = (response_object["response"]).replace("$","\$")
-        pageNumbers = response_object["pageNumbers"]
-        st.session_state.messages.append({"role": "assistant", "content": response,"pageNumbers":pageNumbers})
+        # pageNumbers = response_object["pageNumbers"]
+        pageNumbersWithSourceName = response_object["pageNumbersWithSourceName"]
+        # st.session_state.messages.append({"role": "assistant", "content": response,"pageNumbers":pageNumbers})
+        st.session_state.messages.append({"role": "assistant", "content": response,"pageNumbersWithSourceName":pageNumbersWithSourceName})
         st.markdown(response, unsafe_allow_html=True)
-        st.markdown(f"Page Numbers : {pageNumbers}")
+        # st.markdown(f"Page Numbers : {pageNumbers}")
+        st.markdown(f"Page Numbers with Source Name : {pageNumbersWithSourceName}")
 
 # Function to get the chat conversation as Markdown
 def get_chat_conversation_markdown():
@@ -121,21 +128,23 @@ if submit_process:
             for qa_pair in initial_question_and_answers:
                 question = qa_pair["question"]
                 category = qa_pair["category"]
-                pageNumbers = qa_pair["pageNumbers"]
+                # pageNumbers = qa_pair["pageNumbers"]
+                pageNumbersWithSourceName = qa_pair["pageNumbersWithSourceName"]
                 answer = qa_pair["answer"].replace("$","\$")
 
                 logging.info(f"Question: {question}, Category: {category}")
 
                 if category != prev_category:
                     st.write("---")  # This will add a horizontal line for better readability
-                    st.session_state.messages.append({"role": "user", "content": category})
                     st.subheader(f"{category}")
-
-                st.session_state.messages.append({"role": "assistant", "content": answer,"pageNumbers": pageNumbers})
+                st.session_state.messages.append({"role": "user", "content": category})
+                # st.session_state.messages.append({"role": "assistant", "content": answer,"pageNumbers": pageNumbers})
+                st.session_state.messages.append({"role": "assistant", "content": answer,"pageNumbersWithSourceName": pageNumbersWithSourceName})
 
                 with st.chat_message("assistant"):
                     st.markdown(answer, unsafe_allow_html=True)
-                    st.markdown(f"Page Numbers : {pageNumbers}")
+                    # st.markdown(f"Page Numbers : {pageNumbers}")
+                    st.markdown(f"Page Numbers With Source Name : {pageNumbersWithSourceName}")
 
                 prev_category = category
 
