@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import logging
 from pptx import Presentation
+import io
 
 # Configure logging
 logging.basicConfig(
