@@ -59,7 +59,7 @@ def user_input(user_query):
 
     logging.info(f"Getting user query: {user_query}")
 
-    llm=ChatOpenAI(temperature=0.0, max_tokens=4096)
+    llm=ChatOpenAI(model="gpt-4o-mini",temperature=0.0, max_tokens=4096)
     prompt= ChatPromptTemplate.from_template("""
         Answer the following question based only on the provided context. Use current year as 2023.
         Think step by step before providing on detailed answer.
