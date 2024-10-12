@@ -5,3 +5,4 @@ db
 test.py
 *.pdf
 .streamlit
+.venv

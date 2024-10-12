@@ -14,6 +14,7 @@ import os
 import logging
 from pptx import Presentation
 from pypdf import PdfMerger
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -30,21 +31,37 @@ load_dotenv()
 
 persist_directory = 'db'
 
+def get_pagenumbers_pretty_format(pagenumber_objects_list):
+    res={}
+    for pagenumber_object in  pagenumber_objects_list:
+        for doc_name,pagenumber in pagenumber_object.items():
+            if doc_name in res:
+                res[doc_name].append(pagenumber)
+            else:
+                res[doc_name] = [pagenumber]
+                
+    return res
+
 
 def get_text_documents(pdf_doc):
+    
+    start_time = time.time()
     
     with open(pdf_doc.name, mode='wb') as w:
         w.write(pdf_doc.getvalue())
         
     loader=PyPDFLoader(pdf_doc.name)
     text_documents=loader.load()
-        
+    end_time = time.time()
+    
+    print(f" The taken taken to get Text Documents {end_time - start_time}")
     
     return text_documents
 
 
 def get_text_chunks(text_documents):
     
+    start_time = time.time()
     text_splitter=RecursiveCharacterTextSplitter(chunk_size=1000,chunk_overlap=200)
     text_chunks=text_splitter.split_documents(text_documents)
     
@@ -85,18 +102,22 @@ def user_input(user_query):
         "response":response,
         # "pageNumbers":page_numbers,
         "pageNumbersWithSourceName": page_numbers_with_source_name,
+        "prettyPageNumberFormat": get_pagenumbers_pretty_format(page_numbers_with_source_name)
         }
     return response_object
 
 
 def reset_vector_database():
+    start_time = time.time()
     if os.path.isdir(f'{persist_directory}'):
         shutil.rmtree(persist_directory)
         print("Chroma Database is removed")
         
     else:
         print("The Database is already empty")
-        
+    end_time = time.time()
+    
+    print(f"Resetting of Database took {end_time-start_time}")
 
     
 def load_documents_initially(pdf_docs):
@@ -134,8 +155,8 @@ def load_documents_initially(pdf_docs):
         question_and_answer["category"], question_and_answer["question"] = prompt
         response_object = user_input(prompt[1])
         question_and_answer["answer"] = response_object["response"]
-        # question_and_answer["pageNumbers"] = response_object["pageNumbers"]
         question_and_answer["pageNumbersWithSourceName"]=response_object["pageNumbersWithSourceName"]
+        question_and_answer["prettyPageNumberFormat"]=response_object["prettyPageNumberFormat"]
         
         initial_question_and_answers.append(question_and_answer)
 

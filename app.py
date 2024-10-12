@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Load environment variables from .env file
 load_dotenv()
 
-# Override default sqlite3 with pysqlite3 for better performance
+# # Override default sqlite3 with pysqlite3 for better performance
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
@@ -45,8 +45,8 @@ if "messages" not in st.session_state:
 def reset_state():
     st.session_state.messages = []
     st.session_state["file_uploader_key"] += 1
-    st.experimental_rerun()
-    # st.rerun()
+    # st.experimental_rerun()
+    st.rerun()
 
 def get_chat_conversation_ppt():
     prs = Presentation()
@@ -73,12 +73,12 @@ def get_chat_conversation_ppt():
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        print(message)
         st.markdown(message["content"], unsafe_allow_html=True)
-        # if "pageNumbers" in message:
-        #     st.markdown(f"Page Numbers : {message['pageNumbers']}")
-        if "pageNumbersWithSourceName" in message:
-            st.markdown(f"Page Numbers with Source Name : {message['pageNumbersWithSourceName']}")
+        # if "pageNumbersWithSourceName" in message:
+        #     st.markdown(f"Page Numbers with Source Name : {message['pageNumbersWithSourceName']}")
+        if "prettyPageNumberFormat" in message:
+            for doc_name,pageNumber in message["prettyPageNumberFormat"].items():
+                st.markdown(f"{doc_name} : {', '.join(map(str,pageNumber))}")
             
 
 
@@ -100,13 +100,13 @@ if user_query := st.chat_input("Please Enter Your Query"):
     with st.chat_message("assistant"):
         response_object = user_input(user_query)
         response = (response_object["response"]).replace("$","\$")
-        # pageNumbers = response_object["pageNumbers"]
         pageNumbersWithSourceName = response_object["pageNumbersWithSourceName"]
-        # st.session_state.messages.append({"role": "assistant", "content": response,"pageNumbers":pageNumbers})
-        st.session_state.messages.append({"role": "assistant", "content": response,"pageNumbersWithSourceName":pageNumbersWithSourceName})
+        prettyPageNumberFormat = response_object["prettyPageNumberFormat"]
+        st.session_state.messages.append({"role": "assistant", "content": response,"pageNumbersWithSourceName":pageNumbersWithSourceName, "prettyPageNumberFormat": prettyPageNumberFormat})
         st.markdown(response, unsafe_allow_html=True)
-        # st.markdown(f"Page Numbers : {pageNumbers}")
-        st.markdown(f"Page Numbers with Source Name : {pageNumbersWithSourceName}")
+        # st.markdown(f"Page Numbers with Source Name : {pageNumbersWithSourceName}")
+        for doc_name,pageNumber in message["prettyPageNumberFormat"].items():
+            st.markdown(f"{doc_name} : {', '.join(map(str,pageNumber))}")
 
 # Function to get the chat conversation as Markdown
 def get_chat_conversation_markdown():
@@ -130,6 +130,7 @@ if submit_process:
                 category = qa_pair["category"]
                 # pageNumbers = qa_pair["pageNumbers"]
                 pageNumbersWithSourceName = qa_pair["pageNumbersWithSourceName"]
+                prettyPageNumberFormat = qa_pair["prettyPageNumberFormat"]
                 answer = qa_pair["answer"].replace("$","\$")
 
                 logging.info(f"Question: {question}, Category: {category}")
@@ -138,13 +139,13 @@ if submit_process:
                     st.write("---")  # This will add a horizontal line for better readability
                     st.subheader(f"{category}")
                 st.session_state.messages.append({"role": "user", "content": category})
-                # st.session_state.messages.append({"role": "assistant", "content": answer,"pageNumbers": pageNumbers})
-                st.session_state.messages.append({"role": "assistant", "content": answer,"pageNumbersWithSourceName": pageNumbersWithSourceName})
+                st.session_state.messages.append({"role": "assistant", "content": answer,"pageNumbersWithSourceName": pageNumbersWithSourceName, "prettyPageNumberFormat": prettyPageNumberFormat})
 
                 with st.chat_message("assistant"):
                     st.markdown(answer, unsafe_allow_html=True)
-                    # st.markdown(f"Page Numbers : {pageNumbers}")
-                    st.markdown(f"Page Numbers With Source Name : {pageNumbersWithSourceName}")
+                    # st.markdown(f"Page Numbers With Source Name : {pageNumbersWithSourceName}")
+                    for doc_name,pageNumber in prettyPageNumberFormat.items():
+                        st.markdown(f"{doc_name} : {', '.join(map(str,pageNumber))}")
 
                 prev_category = category
 
