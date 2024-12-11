@@ -35,7 +35,7 @@ def get_pagenumbers_pretty_format(pagenumber_objects_list):
     res={}
     for pagenumber_object in  pagenumber_objects_list:
         for doc_name,pagenumber in pagenumber_object.items():
-            if doc_name in res:
+            if doc_name in res and pagenumber not in res[doc_name]:
                 res[doc_name].append(pagenumber)
             else:
                 res[doc_name] = [pagenumber]
